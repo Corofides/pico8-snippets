@@ -3,7 +3,8 @@ function window()
 	local container = {
 		children = {},
 		justify = "center",
-		align = "start",
+		align = "center",
+		direction = "row",
 		width = 100,
 		height = 100,
 		background = 7,
@@ -14,58 +15,99 @@ function window()
 		dirty = true
 	}
 
+	local window = {
+		elements = {}
+	}
+
 	draw = function(container)
 		rectfill(
-			container.left,
-			container.top,
-			container.left + container.width,
-			container.top + container.height,
+			container._left,
+			container._top,
+			container._left + container.width,
+			container._top + container.height,
 			container.background
 		)
 	end
 
 	-- Position Children
 	-- Assumption - Every child will have a width and the parent will have a left / top position set
-	-- Assumption 2 - We don't care about top to bottom.
 	local position_children = function(container)
 
-		local curLeft = container.left
-		local curTop = container.top
-
+		local cur_left = container.left
+		local cur_top = container.top
+		local max_cross = 0
 
 		for i, v in ipairs(container.children) do
 
-			if v.dirty then
-				v.left = curLeft
-				v.top = curTop
+			local child = window.elements[v]
+
+			child._left = cur_left
+			child._top = cur_top
+
+			if container.direction == "column" then
+				cur_top += child.height
+
+				if (child.width > max_cross) then
+					max_cross = child.width
+				end
+
+			else
+				cur_left += child.width
+
+				if (child.height > max_cross) then
+					max_cross = child.height
+				end
+
 			end
 
-			v.dirty = false
-            curLeft += v.width
-
 		end
 
-		if container.justify == start then
-			return
-		end
-
-		if not container.dirty then
-			return
-		end
+		-- there's probably a way to not do this second pass (future me problems)
 
 		for i, v in ipairs(container.children) do
+			local child = window.elements[v]
+			local move_amount = container.width - cur_left
 
-			local move_amount = container.width - curLeft
+			if (container.direction == "column") then
+				move_amount = container.height - cur_top;
+			end
 
-			if container.justify == "center" then
+			if (container.justify == "start") then
+				move_amount = 0;
+			end
+
+			if (container.justify == "center") then
 				move_amount = move_amount / 2
 			end
 
-			v.left = v.left + (move_amount)
+			if (container.direction == "column") then
+				child._top = child._top + move_amount
+			else
+				child._left = child._left + move_amount
+			end
+
+			-- this is getting very if / elsey
+			if (container.align != "start") then
+
+				move_amount = container.width - max_cross
+
+				if (container.direction == "row") then
+					move_amount = container.height - max_cross
+				end
+
+				if (container.align == "center") then
+					move_amount = move_amount / 2
+				end
+
+				if (container.direction == "column") then
+					child._left = child._left + move_amount
+				else
+					child._top = child._top + move_amount
+				end
+
+			end
+
 		end
-
-		container.dirty = false
-
 
 	end
 
@@ -77,7 +119,8 @@ function window()
 			draw(container)
 
 			for k,v in ipairs(container.children) do
-				draw(v)
+				local child = window.elements[v]
+				draw(child)
 			end
 		end,
 		new_container = function()
@@ -88,11 +131,15 @@ function window()
 			return new_container
 		end,
 		add_child = function(child)
-			add(container.children, child)
+			add(window.elements, child)
+			add(container.children, #window.elements)
 		end,
 		debug = function()
-			print("Children: " .. container.children[2]._left, 20, 20, 0)
-			print("Children: " .. container.children[2]._top, 20, 30, 0)
+
+			local child = window.elements[container.children[2]]
+
+			print("Children: " .. child._left, 20, 20, 0)
+			print("Children: " .. child._top, 20, 30, 0)
 		end
 	}
 
@@ -124,6 +171,7 @@ end
 
 function _draw()
 		cls()
+		--gui.inflate()
 		gui.draw()
 		gui.debug()
 end
