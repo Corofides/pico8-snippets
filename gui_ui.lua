@@ -12,11 +12,16 @@ function window()
 		_top = 0,
 		left = 0,
 		top = 0,
-		dirty = true
+		dirty = true,
+		_index = 1,
+		_parent = nil,
 	}
 
 	local window = {
-		elements = {}
+		elements = {container},
+		breadth = {},
+		container = container,
+		debug = ""
 	}
 
 	draw = function(container)
@@ -29,12 +34,62 @@ function window()
 		)
 	end
 
+	function construct_breadth(container)
+
+		printh("")
+
+		local breadth = {}
+		local nodes = {}
+
+		add(nodes, container._index)
+		local index = 1
+
+		-- window.debug = index .. ", " .. #nodes
+
+		while (index <= #nodes) and (index <= 4) do
+			local node_index = nodes[index]
+
+			window.debug = window.debug .. index .. ", " .. node_index
+			printh("Index: " .. index)
+			printh("Node Index: " .. node_index)
+			printh("Node Size: " .. #nodes)
+
+			-- window.debug = node_index
+			local child = window.elements[node_index]
+
+			add(breadth, node_index)
+
+			for i, v in pairs(child.children) do
+				printh("Add Child " .. i)
+				-- window.debug = window.debug .. i .. "," .. v .. " "
+				add(nodes, v)
+			end
+
+			index += 1
+
+		end
+
+		--[[add(breadth, container._index)
+
+		for v in all(container.children) do
+			local child = window.elements[v]
+			add(breadth, child._index)
+
+			for v2 in all(child.children) do
+				add(nodes, v2)
+			end
+		end]]--
+
+		return breadth;
+
+	end
+
 	-- Position Children
 	-- Assumption - Every child will have a width and the parent will have a left / top position set
 	local position_children = function(container)
 
-		local cur_left = container.left
-		local cur_top = container.top
+		local cur_left = container._left
+		local cur_top = container._top
 		local max_cross = 0
 
 		for i, v in ipairs(container.children) do
@@ -45,14 +100,14 @@ function window()
 			child._top = cur_top
 
 			if container.direction == "column" then
-				cur_top += child.height
+				cur_top += child.height + 1
 
 				if (child.width > max_cross) then
 					max_cross = child.width
 				end
 
 			else
-				cur_left += child.width
+				cur_left += child.width + 1
 
 				if (child.height > max_cross) then
 					max_cross = child.height
@@ -113,6 +168,7 @@ function window()
 
 	return {
 		inflate = function()
+
 			position_children(container)
 		end,
 		draw = function()
@@ -128,18 +184,36 @@ function window()
 			for k,v in pairs(container) do
 				new_container[k] = v
 			end
+			new_container.children = {}
+
 			return new_container
 		end,
-		add_child = function(child)
+		add_child = function(child, parent)
+			child._index = #window.elements + 1
+
+			if (not parent) then
+				parent = container
+			end
+
+			child._index = parent._index
+
 			add(window.elements, child)
-			add(container.children, #window.elements)
+			add(parent.children, #window.elements)
+			window.breadth = construct_breadth(container)
+
+			printh("Window Breadth")
+			for i, v in ipairs(window.breadth) do
+				printh(v)
+			end
+
 		end,
 		debug = function()
 
-			local child = window.elements[container.children[2]]
+			local child = window.elements[container.children[1]]
 
-			print("Children: " .. child._left, 20, 20, 0)
+			print("Children: " .. child._index, 20, 20, 0)
 			print("Children: " .. child._top, 20, 30, 0)
+			print("Breadth: " .. window.debug, 20, 10, 0)
 		end
 	}
 
@@ -156,6 +230,14 @@ function _init()
 
 	gui.add_child(menu)
 
+	local subitem = gui.new_container()
+
+	subitem.width = 6
+	subitem.height = 6
+	subitem.background = 7
+
+	gui.add_child(subitem, menu)
+
 	local item = gui.new_container();
 
 	item.width = 20
@@ -163,15 +245,16 @@ function _init()
 	item.background = 3
 
 	gui.add_child(item)
+
+	gui.inflate()
 end
 
 function _update()
-	gui.inflate()
+
 end
 
 function _draw()
 		cls()
 		--gui.inflate()
 		gui.draw()
-		gui.debug()
 end
