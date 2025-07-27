@@ -2,8 +2,8 @@ function window()
 
 	local container = {
 		children = {},
-		justify = "center",
-		align = "center",
+		justify = "start",
+		align = "start",
 		direction = "row",
 		width = 100,
 		height = 100,
@@ -12,13 +12,22 @@ function window()
 		_top = 0,
 		left = 0,
 		top = 0,
-		dirty = true,
 		_index = 1,
 		_parent = nil,
 	}
 
+	local construct_container = function()
+		local new_container = {}
+		for k,v in pairs(container) do
+			new_container[k] = v
+		end
+		new_container.children = {}
+
+		return new_container
+	end
+
 	local window = {
-		elements = {container},
+		elements = {construct_container(container)},
 		breadth = {},
 		container = 1,
 		debug = ""
@@ -36,8 +45,6 @@ function window()
 
 	function construct_breadth(container)
 
-		printh("")
-
 		local breadth = {}
 		local nodes = {}
 
@@ -46,39 +53,19 @@ function window()
 
 		-- window.debug = index .. ", " .. #nodes
 
-		while (index <= #nodes) and (index <= 4) do
+		while (index <= #nodes) do
 			local node_index = nodes[index]
-
-			window.debug = window.debug .. index .. ", " .. node_index
-			printh("Index: " .. index)
-			printh("Node Index: " .. node_index)
-			printh("Node Size: " .. #nodes)
-
-			-- window.debug = node_index
 			local child = window.elements[node_index]
 
 			add(breadth, node_index)
 
 			for i, v in pairs(child.children) do
-				printh("Add Child " .. i)
-				-- window.debug = window.debug .. i .. "," .. v .. " "
 				add(nodes, v)
 			end
 
 			index += 1
 
 		end
-
-		--[[add(breadth, container._index)
-
-		for v in all(container.children) do
-			local child = window.elements[v]
-			add(breadth, child._index)
-
-			for v2 in all(child.children) do
-				add(nodes, v2)
-			end
-		end]]--
 
 		return breadth;
 
@@ -117,23 +104,31 @@ function window()
 
 		end
 
+		-- removes the added one for positioning without me having to think about it.
+		cur_top -= 1
+		cur_left -= 1
+
 		-- there's probably a way to not do this second pass (future me problems)
 
 		for i, v in ipairs(container.children) do
 			local child = window.elements[v]
-			local move_amount = container.width - cur_left
+			local move_amount = container._left + container.width - flr(cur_left)
 
 			if (container.direction == "column") then
-				move_amount = container.height - cur_top;
+				move_amount = container._top + container.height - flr(cur_top);
 			end
+
+			printh("Move Amount: " .. move_amount)
 
 			if (container.justify == "start") then
 				move_amount = 0;
 			end
 
 			if (container.justify == "center") then
-				move_amount = move_amount / 2
+				move_amount = ceil(move_amount / 2)
 			end
+
+			printh("Move Amount: " .. move_amount)
 
 			if (container.direction == "column") then
 				child._top = child._top + move_amount
@@ -151,7 +146,7 @@ function window()
 				end
 
 				if (container.align == "center") then
-					move_amount = move_amount / 2
+					move_amount = ceil(move_amount / 2)
 				end
 
 				if (container.direction == "column") then
@@ -168,18 +163,29 @@ function window()
 
 	return {
 		inflate = function()
-			position_children(container)
+			for k,v in ipairs(window.breadth) do
+				local element = window.elements[v]
+				position_children(element)
+			end
+			-- position_children(container)
+		end,
+		get_window = function()
+			return window.elements[window.container]
 		end,
 		draw = function()
 
 			local root = window.elements[window.container]
+			for k, v in ipairs(window.breadth) do
+				local element = window.elements[v]
+				draw(element)
+			end
 
-			draw(root)
+			--[[ draw(root)
 
 			for k,v in ipairs(root.children) do
 				local child = window.elements[v]
 				draw(child)
-			end
+			end ]]--
 		end,
 		new_container = function()
 			local new_container = {}
@@ -194,19 +200,14 @@ function window()
 			child._index = #window.elements + 1
 
 			if (not parent) then
-				parent = container
+				parent = window.elements[window.container]
 			end
 
-			child._index = parent._index
+			child._parent = parent._index
 
 			add(window.elements, child)
 			add(parent.children, #window.elements)
 			window.breadth = construct_breadth(container)
-
-			printh("Window Breadth")
-			for i, v in ipairs(window.breadth) do
-				printh(v)
-			end
 
 		end,
 		debug = function()
@@ -222,31 +223,49 @@ function window()
 end
 
 local gui = window()
+gui.get_window().align = "center"
+gui.get_window().justify = "center"
 
 function _init()
 	local menu = gui.new_container();
 
-	menu.width = 20
-	menu.height = 20
+	menu.width = 21
+	menu.height = 21
 	menu.background = 0
+	menu.align = "center"
+	menu.justify = "center"
+	menu.direction = "column"
+
+	-- menu.justify = "start"
 
 	gui.add_child(menu)
 
 	local subitem = gui.new_container()
 
-	subitem.width = 6
-	subitem.height = 6
-	subitem.background = 7
+	-- subitem.left = 0
+	-- subitem.top = 0
+	subitem.width = 5
+	subitem.height = 5
+	subitem.background = 10
+	--subitem.align = "center"
+	--subitem.justify = "center"
+
+	local subitem2 = gui.new_container()
+
+	subitem2.width = 5
+	subitem2.height = 5
+	subitem2.background = 8
 
 	gui.add_child(subitem, menu)
+	gui.add_child(subitem2, menu)
 
-	local item = gui.new_container();
+	--[[ local item = gui.new_container();
 
 	item.width = 20
 	item.height = 20
 	item.background = 3
 
-	gui.add_child(item)
+	gui.add_child(item) ]]--
 
 	gui.inflate()
 end
