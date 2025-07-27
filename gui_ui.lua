@@ -20,7 +20,7 @@ function window()
 	local window = {
 		elements = {container},
 		breadth = {},
-		container = container,
+		container = 1,
 		debug = ""
 	}
 
@@ -168,13 +168,15 @@ function window()
 
 	return {
 		inflate = function()
-
 			position_children(container)
 		end,
 		draw = function()
-			draw(container)
 
-			for k,v in ipairs(container.children) do
+			local root = window.elements[window.container]
+
+			draw(root)
+
+			for k,v in ipairs(root.children) do
 				local child = window.elements[v]
 				draw(child)
 			end
