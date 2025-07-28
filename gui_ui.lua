@@ -1,3 +1,6 @@
+local default_line_height = 4
+local default_text_right_spacing = 2
+
 function window()
 
 	local container = {
@@ -8,6 +11,7 @@ function window()
 		width = 100,
 		height = 100,
 		background = 7,
+		line_height = default_line_height,
 		_left = 0,
 		_top = 0,
 		left = 0,
@@ -41,6 +45,17 @@ function window()
 			container._top + container.height,
 			container.background
 		)
+
+		if (container.text) then
+
+			local text_top = container._top
+
+			if (container.line_height != default_line_height) then
+				text_top += ceil((container.line_height - default_line_height) / 2)
+			end
+
+			print(container.text, container._left, text_top, container.color)
+		end
 	end
 
 	function construct_breadth(container)
@@ -68,6 +83,24 @@ function window()
 		end
 
 		return breadth;
+
+	end
+
+	local calculate_size = function(container)
+
+		if not container.height then
+			if container.text then
+				container.height = container.line_height
+			end
+		end
+
+		if container.width == nil then
+			if container.text then
+				container.width = print(container.text, 0, 0) - default_text_right_spacing
+			end
+		end
+
+		return container
 
 	end
 
@@ -163,11 +196,18 @@ function window()
 
 	return {
 		inflate = function()
-			for k,v in ipairs(window.breadth) do
-				local element = window.elements[v]
+
+			-- this will need changing when we start doing stuff based on nil
+			-- height / widths and children / parents
+			foreach(window.breadth, function(index)
+				local element = window.elements[index]
+				calculate_size(element)
+			end)
+
+			foreach(window.breadth, function(index)
+				local element = window.elements[index]
 				position_children(element)
-			end
-			-- position_children(container)
+			end)
 		end,
 		get_window = function()
 			return window.elements[window.container]
@@ -229,7 +269,7 @@ gui.get_window().justify = "center"
 function _init()
 	local menu = gui.new_container();
 
-	menu.width = 21
+	menu.width = 75
 	menu.height = 21
 	menu.background = 0
 	menu.align = "center"
@@ -240,7 +280,20 @@ function _init()
 
 	gui.add_child(menu)
 
+	local text_element = gui.new_container()
+
+	text_element.width = nil
+	text_element.height = nil
+	text_element.background = 7
+	text_element.text = "Start Game"
+	text_element.color = 0
+	text_element.line_height = 14
+
+	gui.add_child(text_element, menu)
+
 	local subitem = gui.new_container()
+
+
 
 	-- subitem.left = 0
 	-- subitem.top = 0
@@ -256,8 +309,8 @@ function _init()
 	subitem2.height = 5
 	subitem2.background = 8
 
-	gui.add_child(subitem, menu)
-	gui.add_child(subitem2, menu)
+	-- gui.add_child(subitem, menu)
+	-- gui.add_child(subitem2, menu)
 
 	--[[ local item = gui.new_container();
 
@@ -276,6 +329,5 @@ end
 
 function _draw()
 		cls()
-		--gui.inflate()
 		gui.draw()
 end
