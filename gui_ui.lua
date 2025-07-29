@@ -4,6 +4,11 @@ local default_text_right_spacing = 2
 function window()
 
 	local container = {
+		border_color = 0,
+		border_top = 0,
+		border_bottom = 0,
+		border_left = 0,
+		border_right = 0,
 		children = {},
 		justify = "start",
 		align = "start",
@@ -18,6 +23,8 @@ function window()
 		top = 0,
 		_index = 1,
 		_parent = nil,
+		is_focused = false,
+		focus = {}
 	}
 
 	local construct_container = function()
@@ -33,18 +40,62 @@ function window()
 	local window = {
 		elements = {construct_container(container)},
 		breadth = {},
+		depth = {},
 		container = 1,
 		debug = ""
 	}
 
 	draw = function(container)
-		rectfill(
-			container._left,
-			container._top,
-			container._left + container.width,
-			container._top + container.height,
-			container.background
-		)
+
+		if (container.border_left > 0) then
+			rectfill(
+				container._left,
+				container._top,
+				container._left + container.border_left,
+				container._top + container.height,
+				container.border_color
+			)
+		end
+
+		if (container.border_right > 0) then
+			rectfill(
+				(container._left + container.width) - container.border_right,
+				container._top,
+				container._left + container.width,
+				container._top + container.height,
+				container.border_color
+			)
+		end
+
+		if (container.border_top > 0) then
+			rectfill(
+				container._left,
+				container._top,
+				container._left + container.width,
+				container._top + container.border_top,
+				container.border_color
+			)
+		end
+
+		if (container.border_bottom > 0) then
+			rectfill(
+				container._left,
+				container._top + container.height - container.border_bottom,
+				container._left + container.width,
+				container._top + container.height,
+				container.border_color
+			)
+		end
+
+		if (container.background) then
+			rectfill(
+				container._left + container.border_left,
+				container._top + container.border_top,
+				container._left + container.width - container.border_right,
+				container._top + container.height - container.border_bottom,
+				container.background
+			)
+		end
 
 		if (container.text) then
 
@@ -56,6 +107,70 @@ function window()
 
 			print(container.text, container._left, text_top, container.color)
 		end
+	end
+
+	-- little helper function, to check if a value exists in a table
+	function contains(table, value)
+		local contains = false
+
+		foreach(table, function(element)
+			if (element == value) then
+				contains = true;
+				return;
+			end
+		end)
+
+		return contains
+
+	end
+
+	function construct_depth(container)
+		local depth = {}
+		local nodes = {}
+
+		add(nodes, container._index)
+		local index = 1
+
+		while (#nodes > 0) do
+
+			-- if we have no children add the current node to depth,
+			-- and remove it from nodes
+			local node_index = nodes[#nodes]
+
+			-- printh("Node Count: " .. #nodes)
+			-- printh("Node Index: " .. node_index)
+
+			local child = window.elements[node_index]
+			local can_add = false
+
+			if (#child.children == 0) then
+				can_add = true
+			else
+				can_add = true
+
+				foreach(child.children, function(element)
+
+					local in_depth = contains(depth, element)
+
+					if (not in_depth) then
+						can_add = false
+						add(nodes, element)
+
+						-- return early as we only want to add the first child.
+						-- this can be improved as there's a lot of looping.
+						return
+					end
+				end)
+			end
+
+			if (can_add) then
+				add(depth,node_index)
+				del(nodes, node_index)
+			end
+
+		end
+
+		return depth
 	end
 
 	function construct_breadth(container)
@@ -151,8 +266,6 @@ function window()
 				move_amount = container._top + container.height - flr(cur_top);
 			end
 
-			printh("Move Amount: " .. move_amount)
-
 			if (container.justify == "start") then
 				move_amount = 0;
 			end
@@ -160,8 +273,6 @@ function window()
 			if (container.justify == "center") then
 				move_amount = ceil(move_amount / 2)
 			end
-
-			printh("Move Amount: " .. move_amount)
 
 			if (container.direction == "column") then
 				child._top = child._top + move_amount
@@ -248,6 +359,16 @@ function window()
 			add(window.elements, child)
 			add(parent.children, #window.elements)
 			window.breadth = construct_breadth(container)
+			window.depth = construct_depth(container)
+
+			local depth_string = ""
+
+			foreach(window.depth, function(value)
+				depth_string = depth_string .. ", " .. value
+			end)
+
+			printh(depth_string)
+			printh('test')
 
 		end,
 		debug = function()
@@ -267,27 +388,41 @@ gui.get_window().align = "center"
 gui.get_window().justify = "center"
 
 function _init()
+
 	local menu = gui.new_container();
 
-	menu.width = 75
-	menu.height = 21
-	menu.background = 0
+	menu.width = 50
+	menu.height = 15
+	menu.background = 8
 	menu.align = "center"
 	menu.justify = "center"
 	menu.direction = "column"
+	menu.border_color = 0
+	menu.border_left = 1
+	menu.border_right = 1
+	menu.border_top = 1
+	menu.border_bottom = 1
 
 	-- menu.justify = "start"
 
 	gui.add_child(menu)
 
+	local block = gui.new_container();
+
+	block.width = 15;
+	block.height = 15;
+	block.background = 11;
+
+	gui.add_child(block);
+
 	local text_element = gui.new_container()
 
 	text_element.width = nil
 	text_element.height = nil
-	text_element.background = 7
+	text_element.background = nil
 	text_element.text = "Start Game"
 	text_element.color = 0
-	text_element.line_height = 14
+	text_element.line_height = 9
 
 	gui.add_child(text_element, menu)
 
