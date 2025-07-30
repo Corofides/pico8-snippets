@@ -33,12 +33,9 @@ function window()
 		top = 0,
 		_index = 1,
 		_parent = nil,
-		is_focused = false,
-		focus = {},
-		-- Table of functions that respond to events occurring function should look
-		-- like function(event) if (event == "thing") //Do stuff end end
-		on = {},
-		fire = nil
+		-- add a table consisting of a function and table, if the function returns
+		-- true assign the table to the container.
+		states = {},
 	}
 
 	local construct_container = function()
@@ -63,11 +60,17 @@ function window()
 
 		local styles = container
 
-		if (container.is_focused) then
+		for v in all(container.states) do
+			if (v[1]()) then
+				styles = assign({styles, v[2]})
+			end
+		end
+
+		--[[ if (container.is_focused) then
 			--printh("Focused")
 			styles = assign({container, container.focus})
 			-- styles = assign(container, container.focus)
-		end
+		end ]]--
 
 		if (styles.border_left > 0) then
 			rectfill(
@@ -404,9 +407,14 @@ function _init()
 	menu.border_bottom = 1
 	menu.is_focused = false
 
-	menu.focus = {
-		background = "transparent"
-	}
+	menu.states = {{
+		function()
+			return menu.is_focused
+		end,
+		{
+			background = "transparent"
+		}
+	}}
 
 	-- menu.justify = "start"
 
