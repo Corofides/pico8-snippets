@@ -15,10 +15,8 @@ function window()
 
 	local container = {
 		border_color = 0,
-		border_top = 0,
-		border_bottom = 0,
-		border_left = 0,
-		border_right = 0,
+		-- left, right, up, down (same order as buttons)
+		border = {0, 0, 0, 0},
 		children = {},
 		justify = "start",
 		align = "start",
@@ -72,19 +70,19 @@ function window()
 			-- styles = assign(container, container.focus)
 		end ]]--
 
-		if (styles.border_left > 0) then
+		if (styles.border[1] > 0) then
 			rectfill(
 				styles._left,
 				styles._top,
-				styles._left + styles.border_left - 1,
+				styles._left + styles.border[1] - 1,
 				styles._top + styles.height,
 				styles.border_color
 			)
 		end
 
-		if (styles.border_right > 0) then
+		if (styles.border[2] > 0) then
 			rectfill(
-				(styles._left + styles.width) - styles.border_right + 1,
+				(styles._left + styles.width) - styles.border[2] + 1,
 				styles._top,
 				styles._left + styles.width,
 				styles._top + styles.height,
@@ -92,20 +90,20 @@ function window()
 			)
 		end
 
-		if (styles.border_top > 0) then
+		if (styles.border[3] > 0) then
 			rectfill(
 				styles._left,
 				styles._top,
 				styles._left + styles.width,
-				styles._top + styles.border_top - 1,
+				styles._top + styles.border[3] - 1,
 				styles.border_color
 			)
 		end
 
-		if (styles.border_bottom > 0) then
+		if (styles.border[4] > 0) then
 			rectfill(
 				styles._left,
-				styles._top + styles.height - styles.border_bottom + 1,
+				styles._top + styles.height - styles.border[4] + 1,
 				styles._left + styles.width,
 				styles._top + styles.height,
 				styles.border_color
@@ -114,10 +112,10 @@ function window()
 
 		if (styles.background != "transparent") then
 			rectfill(
-				styles._left + styles.border_left,
-				styles._top + styles.border_top,
-				styles._left + styles.width - styles.border_right,
-				styles._top + styles.height - styles.border_bottom,
+				styles._left + styles.border[1],
+				styles._top + styles.border[3],
+				styles._left + styles.width - styles.border[2],
+				styles._top + styles.height - styles.border[4],
 				styles.background
 			)
 		end
@@ -357,12 +355,8 @@ function window()
 			end
 		end,
 		new_container = function()
-			local new_container = {}
-			for k,v in pairs(container) do
-				new_container[k] = v
-			end
+			local new_container = assign({container})
 			new_container.children = {}
-
 			return new_container
 		end,
 		add_child = function(child, parent)
@@ -401,10 +395,7 @@ function _init()
 	menu.justify = "center"
 	menu.direction = "column"
 	menu.border_color = 0
-	menu.border_left = 1
-	menu.border_right = 1
-	menu.border_top = 1
-	menu.border_bottom = 1
+	menu.border = {1, 1, 1, 1}
 	menu.is_focused = false
 
 	menu.states = {{
