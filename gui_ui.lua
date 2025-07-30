@@ -1,6 +1,16 @@
 local default_line_height = 4
 local default_text_right_spacing = 2
 
+function assign(args)
+	local newTable = {}
+	for i, tab in ipairs(args) do
+		for k,v in pairs(tab) do
+			newTable[k] = v;
+		end
+	end
+	return newTable
+end
+
 function window()
 
 	local container = {
@@ -24,7 +34,11 @@ function window()
 		_index = 1,
 		_parent = nil,
 		is_focused = false,
-		focus = {}
+		focus = {},
+		-- Table of functions that respond to events occurring function should look
+		-- like function(event) if (event == "thing") //Do stuff end end
+		on = {},
+		fire = nil
 	}
 
 	local construct_container = function()
@@ -47,65 +61,73 @@ function window()
 
 	draw = function(container)
 
-		if (container.border_left > 0) then
+		local styles = container
+
+		if (container.is_focused) then
+			--printh("Focused")
+			styles = assign({container, container.focus})
+			-- styles = assign(container, container.focus)
+		end
+
+		if (styles.border_left > 0) then
 			rectfill(
-				container._left,
-				container._top,
-				container._left + container.border_left,
-				container._top + container.height,
-				container.border_color
+				styles._left,
+				styles._top,
+				styles._left + styles.border_left - 1,
+				styles._top + styles.height,
+				styles.border_color
 			)
 		end
 
-		if (container.border_right > 0) then
+		if (styles.border_right > 0) then
 			rectfill(
-				(container._left + container.width) - container.border_right,
-				container._top,
-				container._left + container.width,
-				container._top + container.height,
-				container.border_color
+				(styles._left + styles.width) - styles.border_right + 1,
+				styles._top,
+				styles._left + styles.width,
+				styles._top + styles.height,
+				styles.border_color
 			)
 		end
 
-		if (container.border_top > 0) then
+		if (styles.border_top > 0) then
 			rectfill(
-				container._left,
-				container._top,
-				container._left + container.width,
-				container._top + container.border_top,
-				container.border_color
+				styles._left,
+				styles._top,
+				styles._left + styles.width,
+				styles._top + styles.border_top - 1,
+				styles.border_color
 			)
 		end
 
-		if (container.border_bottom > 0) then
+		if (styles.border_bottom > 0) then
 			rectfill(
-				container._left,
-				container._top + container.height - container.border_bottom,
-				container._left + container.width,
-				container._top + container.height,
-				container.border_color
+				styles._left,
+				styles._top + styles.height - styles.border_bottom + 1,
+				styles._left + styles.width,
+				styles._top + styles.height,
+				styles.border_color
 			)
 		end
 
-		if (container.background) then
+		if (styles.background != "transparent") then
 			rectfill(
-				container._left + container.border_left,
-				container._top + container.border_top,
-				container._left + container.width - container.border_right,
-				container._top + container.height - container.border_bottom,
-				container.background
+				styles._left + styles.border_left,
+				styles._top + styles.border_top,
+				styles._left + styles.width - styles.border_right,
+				styles._top + styles.height - styles.border_bottom,
+				styles.background
 			)
 		end
 
-		if (container.text) then
+		if (styles.text) then
 
-			local text_top = container._top
+			local text_top = styles._top
 
-			if (container.line_height != default_line_height) then
-				text_top += ceil((container.line_height - default_line_height) / 2)
+			if (styles.line_height != default_line_height) then
+				text_top += ceil((styles.line_height - default_line_height) / 2)
 			end
 
-			print(container.text, container._left, text_top, container.color)
+			print(styles.text, styles._left, text_top, styles.color)
 		end
 	end
 
@@ -223,8 +245,8 @@ function window()
 	-- Assumption - Every child will have a width and the parent will have a left / top position set
 	local position_children = function(container)
 
-		local cur_left = container._left
-		local cur_top = container._top
+		local cur_left = container._left or 0
+		local cur_top = container._top or 0
 		local max_cross = 0
 
 		for i, v in ipairs(container.children) do
@@ -330,13 +352,6 @@ function window()
 				local element = window.elements[v]
 				draw(element)
 			end
-
-			--[[ draw(root)
-
-			for k,v in ipairs(root.children) do
-				local child = window.elements[v]
-				draw(child)
-			end ]]--
 		end,
 		new_container = function()
 			local new_container = {}
@@ -361,24 +376,7 @@ function window()
 			window.breadth = construct_breadth(container)
 			window.depth = construct_depth(container)
 
-			local depth_string = ""
-
-			foreach(window.depth, function(value)
-				depth_string = depth_string .. ", " .. value
-			end)
-
-			printh(depth_string)
-			printh('test')
-
 		end,
-		debug = function()
-
-			local child = window.elements[container.children[1]]
-
-			print("Children: " .. child._index, 20, 20, 0)
-			print("Children: " .. child._top, 20, 30, 0)
-			print("Breadth: " .. window.debug, 20, 10, 0)
-		end
 	}
 
 end
@@ -387,9 +385,11 @@ local gui = window()
 gui.get_window().align = "center"
 gui.get_window().justify = "center"
 
+local menu = nil
+
 function _init()
 
-	local menu = gui.new_container();
+	menu = gui.new_container();
 
 	menu.width = 50
 	menu.height = 15
@@ -402,6 +402,11 @@ function _init()
 	menu.border_right = 1
 	menu.border_top = 1
 	menu.border_bottom = 1
+	menu.is_focused = false
+
+	menu.focus = {
+		background = "transparent"
+	}
 
 	-- menu.justify = "start"
 
@@ -419,7 +424,7 @@ function _init()
 
 	text_element.width = nil
 	text_element.height = nil
-	text_element.background = nil
+	text_element.background = "transparent"
 	text_element.text = "Start Game"
 	text_element.color = 0
 	text_element.line_height = 9
@@ -459,7 +464,9 @@ function _init()
 end
 
 function _update()
-
+	if (btnp(5)) then
+		menu.is_focused = not menu.is_focused
+	end
 end
 
 function _draw()
