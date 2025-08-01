@@ -17,6 +17,7 @@ function window()
 		border_color = 0,
 		-- left, right, up, down (same order as buttons)
 		border = {0, 0, 0, 0},
+		margin = {0, 0, 0, 0},
 		children = {},
 		justify = "start",
 		align = "start",
@@ -34,6 +35,7 @@ function window()
 		-- add a table consisting of a function and table, if the function returns
 		-- true assign the table to the container.
 		states = {},
+		visible = true
 	}
 
 	local construct_container = function()
@@ -64,11 +66,9 @@ function window()
 			end
 		end
 
-		--[[ if (container.is_focused) then
-			--printh("Focused")
-			styles = assign({container, container.focus})
-			-- styles = assign(container, container.focus)
-		end ]]--
+		if (not container.visible) then
+			return
+		end
 
 		if (styles.border[1] > 0) then
 			rectfill(
@@ -250,25 +250,26 @@ function window()
 		local cur_top = container._top or 0
 		local max_cross = 0
 
+		-- Position the elements in the column or the direction.
 		for i, v in ipairs(container.children) do
 
 			local child = window.elements[v]
 
-			child._left = cur_left
-			child._top = cur_top
+			child._left = cur_left + child.margin[1]
+			child._top = cur_top + child.margin[3]
 
 			if container.direction == "column" then
-				cur_top += child.height + 1
+				cur_top += child.height + 1 + child.margin[4]
 
 				if (child.width > max_cross) then
-					max_cross = child.width
+					max_cross = child.width + child.margin[1] + child.margin[2]
 				end
 
 			else
-				cur_left += child.width + 1
+				cur_left += child.width + 1 + child.margin[2]
 
 				if (child.height > max_cross) then
-					max_cross = child.height
+					max_cross = child.height + child.margin[3] + child.margin[4]
 				end
 
 			end
@@ -279,8 +280,8 @@ function window()
 		cur_top -= 1
 		cur_left -= 1
 
+		-- Align the elements based on the parents alignment properties and the width / height of the children.
 		-- there's probably a way to not do this second pass (future me problems)
-
 		for i, v in ipairs(container.children) do
 			local child = window.elements[v]
 			local move_amount = container._left + container.width - flr(cur_left)
@@ -381,6 +382,7 @@ end
 local gui = window()
 gui.get_window().align = "center"
 gui.get_window().justify = "center"
+gui.get_window().direction = "column"
 
 local menu = nil
 
@@ -397,6 +399,7 @@ function _init()
 	menu.border_color = 0
 	menu.border = {1, 1, 1, 1}
 	menu.is_focused = false
+	menu.margin = {0, 20, 0, 0}
 
 	menu.states = {{
 		function()
@@ -411,13 +414,26 @@ function _init()
 
 	gui.add_child(menu)
 
+	--[[ local block1 = gui.new_container();
+
+	block1.width = 15;
+	block1.height = 15;
+	block1.margin = {5, 5, 5, 10}
+	block1.background = 11;
+	block1.visible = false;
+
+	gui.add_child(block1);
+
 	local block = gui.new_container();
 
 	block.width = 15;
 	block.height = 15;
+	block.margin = {5, 5, 5, 5}
 	block.background = 11;
 
 	gui.add_child(block);
+
+	]]--
 
 	local text_element = gui.new_container()
 
